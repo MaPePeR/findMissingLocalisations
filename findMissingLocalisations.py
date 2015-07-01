@@ -1,14 +1,14 @@
 from collections import defaultdict
 
-def diffFiles(listOfFiles):
+def diffFiles(listOfFiles, showCommon = False):
 	dicts = []
 	filenames = []
 	for filename in listOfFiles:
 		dicts.append(readLocalisations(filename))
 		filenames.append(filename)
-	diffDictKeys(dicts, filenames)
+	diffDictKeys(dicts, filenames, showCommon)
 
-def diffDictKeys(dicts, filenames):
+def diffDictKeys(dicts, filenames, showCommon = False):
 	if len(dicts) != len(filenames):
 		raise "dicts and filenames have to have the same length!"
 	if len(dicts) <= 1:
@@ -19,8 +19,9 @@ def diffDictKeys(dicts, filenames):
 		keySets.append(set(localisation.keys()))
 
 	#Remove all the common keys from the keySets
-	fullIntersection = intersectMultiple(keySets)
+	fullIntersection = set.intersection(*keySets)
 	keySets = [x.difference(fullIntersection) for x in keySets]
+	allKeys = set.union(*keySets)
 
 	#Create a dict that stores which key is stored in which files.
 	keyInFiles = defaultdict(set)
@@ -30,6 +31,8 @@ def diffDictKeys(dicts, filenames):
 	
 	fileSet = set(filenames)
 	fileStatistics = {'+':defaultdict(int),'-':defaultdict(int)}
+
+	print("Keys:")
 	for key, keySet in keyInFiles.items():
 		inFiles = keySet
 		notInFiles = fileSet-keySet
@@ -38,6 +41,13 @@ def diffDictKeys(dicts, filenames):
 		for filename in notInFiles:
 			fileStatistics['-'][filename]+=1
 		print("%s:\n\tIn: %s\n\tNot in: %s" % (key, toCommaSeparatedList(inFiles), toCommaSeparatedList(notInFiles)))
+
+	print("\nFiles:")
+	if showCommon:
+		print("Common: \n\t%s" % toCommaSeparatedList(fullIntersection))
+	for keyset, filename in zip(keySets, filenames):
+		print("%s:\n\tHas: %s\n\tMissing: %s" % (filename, toCommaSeparatedList(allKeys & keyset), toCommaSeparatedList(allKeys - keyset)))
+
 	
 	print("\nStatistics:")
 	print("\tCommon: %d" % len(fullIntersection))
@@ -46,14 +56,6 @@ def diffDictKeys(dicts, filenames):
 
 def toCommaSeparatedList(l):
 	return ", ".join(l)
-
-def intersectMultiple(listOfSets):
-	if len(listOfSets) <= 1:
-		raise "need at least two sets"
-	fullIntersection = listOfSets[0].intersection(listOfSets[1])
-	for s in listOfSets[2:]:
-		fullIntersection = fullIntersection.intersection(s)
-	return fullIntersection
 
 def readLocalisations(filename):
 	localisation = {}
@@ -72,5 +74,11 @@ def readLocalisations(filename):
 
 
 if __name__ == "__main__":
-	import sys
-	diffFiles(sys.argv[1:])
+	import argparse
+	parser = argparse.ArgumentParser(description='Find missing keys in localisation files.')
+	parser.add_argument("--show-common", help="Also list keys that are present in all files.", action="store_true", dest="showCommon")
+	parser.add_argument("filename", nargs=1)
+	parser.add_argument("filenames", nargs="+")
+	args = parser.parse_args()
+	diffFiles(args.filename + args.filenames, args.showCommon)
+s
