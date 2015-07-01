@@ -1,14 +1,14 @@
 from collections import defaultdict
 
-def diffFiles(listOfFiles, showCommon = False):
+def diffFiles(listOfFiles, args):
 	dicts = []
 	filenames = []
 	for filename in listOfFiles:
 		dicts.append(readLocalisations(filename))
 		filenames.append(filename)
-	diffDictKeys(dicts, filenames, showCommon)
+	diffDictKeys(dicts, filenames, args)
 
-def diffDictKeys(dicts, filenames, showCommon = False):
+def diffDictKeys(dicts, filenames, args):
 	if len(dicts) != len(filenames):
 		raise "dicts and filenames have to have the same length!"
 	if len(dicts) <= 1:
@@ -43,10 +43,13 @@ def diffDictKeys(dicts, filenames, showCommon = False):
 		print("%s:\n\tIn: %s\n\tNot in: %s" % (key, toCommaSeparatedList(inFiles), toCommaSeparatedList(notInFiles)))
 
 	print("\nFiles:")
-	if showCommon:
+	if args.showCommon:
 		print("Common: \n\t%s" % toCommaSeparatedList(fullIntersection))
-	for keyset, filename in zip(keySets, filenames):
-		print("%s:\n\tHas: %s\n\tMissing: %s" % (filename, toCommaSeparatedList(allKeys & keyset), toCommaSeparatedList(allKeys - keyset)))
+	for keySet, filename in zip(keySets, filenames):
+		print("%s:" % filename)
+		if not args.onlyMissing:
+			print("\tHas: %s" % toCommaSeparatedList(allKeys & keySet))
+		print("\tMissing: %s" % toCommaSeparatedList(allKeys - keySet))
 
 	
 	print("\nStatistics:")
@@ -76,9 +79,9 @@ def readLocalisations(filename):
 if __name__ == "__main__":
 	import argparse
 	parser = argparse.ArgumentParser(description='Find missing keys in localisation files.')
-	parser.add_argument("--show-common", help="Also list keys that are present in all files.", action="store_true", dest="showCommon")
+	parser.add_argument("--show-common", help="Also list keys that are present in all files.", action="store_true", dest="showCommon", default=False)
+	parser.add_argument("--only-missing", help="Only list keys that are missing in a file.", action="store_true", dest="onlyMissing", default=False)
 	parser.add_argument("filename", nargs=1)
 	parser.add_argument("filenames", nargs="+")
 	args = parser.parse_args()
-	diffFiles(args.filename + args.filenames, args.showCommon)
-s
+	diffFiles(args.filename + args.filenames, args)
